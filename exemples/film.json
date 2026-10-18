@@ -1,0 +1,11 @@
+{
+  "bpm": 100,
+  "beatsPerBar": 4,
+  "cycle": "beat",
+  "cues": [
+    { "beat": 0, "n": 3, "orbit": "hold", "title": 0 },
+    { "beat": 4, "n": 10, "orbit": "start", "title": 0 },
+    { "beat": 8, "n": 36, "orbit": "orbit", "title": 0.35 },
+    { "beat": 16, "n": 1024, "orbit": "settle", "title": 1 }
+  ]
+}

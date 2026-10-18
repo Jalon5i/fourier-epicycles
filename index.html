@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#e4ddd0" />
+    <meta
+      name="description"
+      content="Épicycles de Fourier en 2D et en 3D : une chaîne de cercles par axe, x(t), y(t) et z(t)."
+    />
+    <title>Épicycles de Fourier</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <style>html,body{background:#e4ddd0;margin:0}</style>
+    <script type="module" crossorigin src="./assets/index-BreFB4I3.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DaZMcpJS.css">
+  </head>
+  <body>
+    <div class="app">
+      <header class="top">
+        <div>
+          <p class="mark" id="mark">Deux chaînes, une plume</p>
+          <h1>Épicycles de Fourier</h1>
+        </div>
+        <div class="top-side">
+          <div class="top-actions">
+            <div class="segment dim" role="group" aria-label="Dimension de la vue">
+              <button type="button" id="dim-2d" aria-pressed="true">2D</button>
+              <button type="button" id="dim-3d" aria-pressed="false">3D</button>
+            </div>
+            <button type="button" class="btn film-toggle" id="film-btn" aria-pressed="false">Film</button>
+          </div>
+          <p class="lede" id="lede">
+            Une chaîne de cercles tournants fabrique x(t), une autre y(t). Leurs projections se croisent sur la plume et redessinent la forme.
+          </p>
+        </div>
+      </header>
+      <main class="workspace">
+        <section class="stage" id="stage">
+          <canvas id="board" aria-label="Animation des épicycles"></canvas>
+          <div id="view3d"></div>
+          <p class="orbit-hint" id="orbit-hint" hidden>Glissez pour tourner, pincez pour zoomer.</p>
+          <div class="film-overlay" id="film-overlay" hidden>
+            <p id="film-readout"></p>
+            <p id="film-title"></p>
+          </div>
+          <div id="equation" class="equation" hidden></div>
+          <div class="hud">
+            <strong id="shape-name">Avion</strong>
+            <span id="hud-count">10 cercles / axe</span>
+          </div>
+          <p class="hint" id="hint" hidden>Tracez une forme fermée, puis relâchez. Le trait sera refermé tout seul.</p>
+        </section>
+        <aside class="panel">
+          <section class="error-card" aria-live="polite">
+            <p class="eyebrow">Écart maximal</p>
+            <p class="error-value"><span id="error-num">—</span><span class="unit">%</span></p>
+            <p class="error-sub" id="error-sub">de la hauteur de la forme</p>
+            <div class="error-bar" aria-hidden="true"><div class="error-fill" id="error-fill"></div></div>
+            <p class="error-note" id="error-note"></p>
+          </section>
+
+          <section class="block">
+            <h2>Forme</h2>
+            <div class="presets only-2d only-static" id="presets-2d" role="group" aria-label="Formes prédéfinies">
+              <button type="button" class="preset" data-preset="avion" aria-pressed="true">
+                <svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M2 14h12l4-9 4 9h8l-2 4h-6l-4 9-4-9H2z"/></svg>
+                <span>Avion</span>
+              </button>
+              <button type="button" class="preset" data-preset="coeur" aria-pressed="false">
+                <svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16 28C6 20 2 14 6 9c3-4 8-3 10 2 2-5 7-6 10-2 4 5 0 11-10 19z"/></svg>
+                <span>Cœur</span>
+              </button>
+              <button type="button" class="preset" data-preset="etoile" aria-pressed="false">
+                <svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16 3l3.8 8.2L28 12.4l-6.2 5.6L23.6 27 16 22.6 8.4 27l1.8-9-6.2-5.6 8.2-1.2z"/></svg>
+                <span>Étoile</span>
+              </button>
+              <button type="button" class="preset" data-preset="carre" aria-pressed="false">
+                <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="6" width="20" height="20" fill="currentColor"/></svg>
+                <span>Carré</span>
+              </button>
+              <button type="button" class="preset" data-preset="cercle" aria-pressed="false">
+                <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="10" fill="currentColor"/></svg>
+                <span>Cercle</span>
+              </button>
+              <button type="button" class="preset" data-preset="fleur" aria-pressed="false">
+                <svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16 3c1.6 3.6 3.2 5.2 7 5.6-3.4 1.2-5 2.8-6.2 7.2C15.4 11.4 13.6 9.8 10 8.6 13.8 8.2 15.2 6.4 16 3zm0 26c-1.6-3.6-3.2-5.2-7-5.6 3.4-1.2 5-2.8 6.2-7.2 1.4 4.4 3.2 6 6.8 7.2-3.8.4-5.2 2.2-6 5.6zM3 16c3.6-1.6 5.2-3.2 5.6-7 1.2 3.4 2.8 5 7.2 6.2C11.4 16.6 9.8 18.4 8.6 22 8.2 18.2 6.4 16.8 3 16zm26 0c-3.6 1.6-5.2 3.2-5.6 7-1.2-3.4-2.8-5-7.2-6.2 4.4-1.4 6-3.2 7.2-6.8.4 3.8 2.2 5.2 5.6 6z"/></svg>
+                <span>Fleur</span>
+              </button>
+              <button type="button" class="preset" data-preset="infini" aria-pressed="false">
+                <svg viewBox="0 0 32 32" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" d="M8 16c0-3.2 2.2-5.5 4.8-5.5 3.2 0 4 3.2 6.4 5.5 2.2 2.2 3.2 5.5 6 5.5 2.6 0 4.8-2.3 4.8-5.5S27.8 10.5 25.2 10.5c-2.8 0-3.8 3.3-6 5.5-2.4 2.3-3.2 5.5-6.4 5.5C10.2 21.5 8 19.2 8 16z"/></svg>
+                <span>Infini</span>
+              </button>
+            </div>
+            <div class="presets only-3d only-static" id="presets-3d" role="group" aria-label="Formes dans l’espace">
+              <button type="button" class="preset" data-preset="trefle" aria-pressed="true">
+                <svg viewBox="0 0 32 32" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" d="M16 5c5 1 9 5 8 9-1 5-6 5-8 3-2 2-7 2-8-3-1-4 3-8 8-9z"/><path fill="none" stroke="currentColor" stroke-width="1.8" d="M10 18c2 4 6 6 10 4"/></svg>
+                <span>Trèfle</span>
+              </button>
+              <button type="button" class="preset" data-preset="helice" aria-pressed="false">
+                <svg viewBox="0 0 32 32" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" d="M11 4c7 2 7 4 0 6s-7 4 0 6 7 4 0 6 7 4 0 6"/></svg>
+                <span>Hélice</span>
+              </button>
+              <button type="button" class="preset" data-preset="coeur3" aria-pressed="false">
+                <svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16 28C6 20 2 14 6 9c3-4 8-3 10 2 2-5 7-6 10-2 4 5 0 11-10 19z"/></svg>
+                <span>Cœur</span>
+              </button>
+              <button type="button" class="preset" data-preset="tore" aria-pressed="false">
+                <svg viewBox="0 0 32 32" aria-hidden="true"><ellipse cx="16" cy="16" rx="11" ry="7" fill="none" stroke="currentColor" stroke-width="1.7"/><ellipse cx="16" cy="16" rx="4" ry="10" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+                <span>Torique</span>
+              </button>
+              <button type="button" class="preset" data-preset="lissajous" aria-pressed="false">
+                <svg viewBox="0 0 32 32" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.7" d="M6 16c2-7 5-8 8 0s5 8 8 0 4-5 6-2"/></svg>
+                <span>Lissajous</span>
+              </button>
+            </div>
+            <div class="row only-static">
+              <button type="button" class="btn only-2d" id="draw-btn">Dessiner</button>
+              <button type="button" class="btn" id="file-btn">Importer un SVG</button>
+            </div>
+            <input id="file" class="sr" type="file" accept=".svg,image/svg+xml" />
+            <p class="hint-line only-3d only-static">Fichier texte : une ligne par point, trois nombres x y z.</p>
+            <p class="status" id="status" role="status"></p>
+            <button type="button" class="btn sample only-2d only-static" id="sample-svg">Essayer l’exemple cœur.svg</button>
+            <button type="button" class="btn sample only-3d only-static" id="sample-xyz">Essayer l’exemple lissajous.csv</button>
+          </section>
+
+          <section class="block only-static">
+            <h2>Modèle</h2>
+            <div class="segment only-2d" role="group" aria-label="Modèle de série">
+              <button type="button" id="mode-axes" aria-pressed="true">Deux axes</button>
+              <button type="button" id="mode-complex" aria-pressed="false">Chaîne complexe</button>
+            </div>
+            <p class="hint-line only-2d" id="mode-hint">x(t) et y(t) séparément, harmoniques 1 à N.</p>
+            <p class="hint-line only-3d" id="mode-hint-3d">Trois séries réelles. Sur chaque axe, les fréquences 1 à N.</p>
+            <p class="chips" id="legend">
+              <span><i class="dot x"></i> x(t)</span>
+              <span><i class="dot y"></i> y(t)</span>
+              <span><i class="dot pen"></i> plume</span>
+            </p>
+          </section>
+
+          <section class="block">
+            <h2>Lecture</h2>
+            <div class="slider-line">
+              <label id="count-label" for="count">Cercles par axe</label>
+              <output id="count-out" for="count">10</output>
+            </div>
+            <input id="count" type="range" min="1" max="400" step="1" value="10" />
+            <div class="jumps only-static" role="group" aria-label="Nombres de cercles">
+              <button type="button" data-count="1">1</button>
+              <button type="button" data-count="10" aria-pressed="true">10</button>
+              <button type="button" data-count="40">40</button>
+              <button type="button" data-count="100">100</button>
+              <button type="button" data-count="200">200</button>
+            </div>
+            <div class="jumps only-film" id="film-jumps" role="group" aria-label="Paliers de modes">
+              <button type="button" data-count="3">3</button>
+              <button type="button" data-count="10">10</button>
+              <button type="button" data-count="36">36</button>
+              <button type="button" data-count="1024">1024</button>
+            </div>
+            <p class="hint-line" id="count-hint">Somme partielle : les fréquences 1 à N. Les suivantes sont coupées.</p>
+            <div class="slider-line">
+              <label for="speed">Vitesse</label>
+              <output id="speed-out" for="speed">0,16 tour/s</output>
+            </div>
+            <input id="speed" type="range" min="0.04" max="0.8" step="0.01" value="0.16" />
+            <div class="row">
+              <button type="button" class="btn primary" id="play" aria-pressed="true">Pause</button>
+              <button type="button" class="btn" id="restart">Recommencer</button>
+            </div>
+          </section>
+
+          <section class="block">
+            <h2>Affichage</h2>
+            <div class="checks">
+              <label class="check"><input id="show-circles" type="checkbox" checked /> Cercles</label>
+              <label class="check"><input id="show-trail" type="checkbox" checked /> Tracé</label>
+              <label class="check only-static"><input id="show-original" type="checkbox" /> Forme d’origine</label>
+              <label class="check only-static"><input id="show-guides" type="checkbox" checked /> Lignes de projection</label>
+              <label class="check only-static"><input id="show-heatmap" type="checkbox" /> Carte d’erreur</label>
+            </div>
+            <div class="heat-key" id="heat-key" hidden>
+              <span>faible</span>
+              <i></i>
+              <span>fort</span>
+            </div>
+            <details class="explain">
+              <summary>Pourquoi les coins traînent</summary>
+              <p>
+                Un coin est une rupture de pente. Ses coefficients ne décroissent qu’en 1/n², donc la pointe n’apparaît qu’avec beaucoup de petits cercles. Près de l’angle, la somme partielle dépasse un peu la cible avant de la rejoindre : c’est le phénomène de Gibbs.
+              </p>
+              <p class="only-2d">
+                Sur l’avion, les pointes d’ailes et la queue restent les dernières zones colorées. Le carré montre la même chose sur quatre coins. Le cercle, lui, tient dans un seul harmonique : l’écart tombe à zéro.
+              </p>
+              <p class="only-3d">
+                En 3D, la même somme partielle agit sur x, y et z. Un nœud lisse se referme vite. Le creux du cœur, plus anguleux, reste visible plus longtemps sur la carte d’erreur.
+              </p>
+            </details>
+            <p class="keys">Espace : lecture ou pause. Touches + et − : nombre de cercles. En 3D, le glisser tourne la vue et le pincement zoome.</p>
+          </section>
+
+          <section class="block only-film" id="film-block">
+            <h2>Film</h2>
+            <p class="hint-line">Une chaîne, des poses. Les rayons et les phases glissent, et le tour se referme.</p>
+            <div class="row">
+              <button type="button" class="btn primary" id="film-demo">Cycliste</button>
+              <button type="button" class="btn" id="film-poses">Poses SVG</button>
+            </div>
+            <input id="film-files" class="sr" type="file" accept=".svg,image/svg+xml" multiple />
+            <div class="slider-line">
+              <label for="bpm">Cadence</label>
+              <output id="bpm-out" for="bpm">100 BPM</output>
+            </div>
+            <input id="bpm" type="range" min="40" max="200" step="1" value="100" />
+            <div class="segment" role="group" aria-label="Unité du cycle de pédalage">
+              <button type="button" id="cycle-beat" aria-pressed="true">Par temps</button>
+              <button type="button" id="cycle-bar" aria-pressed="false">Par mesure</button>
+            </div>
+            <div class="checks">
+              <label class="check"><input id="follow-timeline" type="checkbox" checked /> Suivre le scénario</label>
+              <label class="check"><input id="show-equation" type="checkbox" checked /> Équations</label>
+              <label class="check"><input id="show-pip" type="checkbox" /> Loupes</label>
+              <label class="check"><input id="film-free-cam" type="checkbox" /> Caméra libre</label>
+            </div>
+            <div class="row">
+              <button type="button" class="btn" id="film-audio-btn">Musique</button>
+              <button type="button" class="btn" id="film-json-btn">Scénario</button>
+            </div>
+            <input id="film-audio" class="sr" type="file" accept="audio/*,.mp3,.wav,.ogg,.m4a" />
+            <input id="film-json" class="sr" type="file" accept=".json,application/json" />
+            <div class="row">
+              <button type="button" class="btn" id="snap-beats">Caler sur les temps</button>
+              <button type="button" class="btn" id="record-btn">Enregistrer 1080p</button>
+            </div>
+            <button type="button" class="btn sample" id="film-sample-json">Scénario d’exemple</button>
+            <p class="hint-line" id="film-steps">Paliers : 3, 10, 36, 1024</p>
+          </section>
+        </aside>
+      </main>
+    </div>
+    <div class="drop" id="drop" hidden>
+      <strong id="drop-title">Déposez un fichier SVG</strong>
+    </div>
+  </body>
+</html>
